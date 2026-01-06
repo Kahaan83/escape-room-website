@@ -41,33 +41,31 @@
             background-size: contain;
             animation: drift 60s linear infinite;
         }
-
-        /* Video Background Fix */
-        #bgVideo {
-            position: fixed;
-            right: 0;
-            bottom: 0;
-            min-width: 100%;
-            min-height: 100%;
-            width: auto;
-            height: auto;
-            z-index: -10;
-            object-fit: cover;
-        }
     </style>
 </head>
-<body class="bg-black text-gray-100 font-sans overflow-hidden h-screen w-full relative selection:bg-purple-900 selection:text-white">
+<body class="bg-gray-900 text-gray-100 font-sans overflow-hidden h-screen w-full relative selection:bg-purple-900 selection:text-white">
 
-    <div class="fixed inset-0 z-0 opacity-40">
-        <video id="bgVideo" autoplay loop muted playsinline>
+    <div class="fixed inset-0 z-0">
+        <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover opacity-60" autoplay loop muted playsinline>
             <source src="assets/background.mp4" type="video/mp4">
         </video>
-        <div class="absolute inset-0 flex items-center justify-center -z-20">
-            <p class="text-gray-800 text-sm">Background video not found.<br>Check folder 'assets' and file 'background.mp4'</p>
+
+        <div class="absolute inset-0 flex items-center justify-center -z-10 bg-black">
+            <div class="bg-white p-6 rounded text-center">
+                <p class="text-red-600 font-bold text-xl mb-2">VIDEO ERROR</p>
+                <p class="text-gray-800">
+                    The video file <strong>assets/background.mp4</strong> was not found.
+                </p>
+                <p class="text-sm text-gray-600 mt-2">
+                    1. Check the file name (must be lowercase).<br>
+                    2. Check the 'assets' folder exists.<br>
+                    3. Refresh the page (Ctrl+F5).
+                </p>
+            </div>
         </div>
     </div>
 
-    <div class="fixed inset-0 z-0 pointer-events-none fog-layer opacity-40 bottom-0 h-1/2"></div>
+    <div class="fixed inset-0 z-10 pointer-events-none fog-layer opacity-40 bottom-0 h-1/2"></div>
     <div class="fixed inset-0 z-10 vignette pointer-events-none"></div>
 
     <audio id="audioAmbience" loop><source src="assets/theme.mp3" type="audio/mpeg"></audio>
@@ -354,6 +352,16 @@
             updateTimerDisplay();
             renderSkulls();
             lucide.createIcons();
+            
+            // Extra check for video error
+            const vid = document.getElementById('bgVideo');
+            vid.onerror = function() {
+                // If video fails, force debug visible by removing its parent's 'hidden' status if any, 
+                // but our structure uses z-index.
+                // The debug div is behind the video. If video fails, it might just show nothing.
+                // So we log it and maybe alert.
+                console.log("Video failed to load");
+            };
         });
     </script>
 </body>
