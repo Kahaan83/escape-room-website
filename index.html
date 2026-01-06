@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Addams Mansion Escape</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Creepster&family=Nosifer&display=swap" rel="stylesheet">
+
+    <style>
+        .font-creepster { font-family: 'Creepster', cursive; }
+        .font-gothic { font-family: 'Cinzel Decorative', cursive; }
+        .font-nosifer { font-family: 'Nosifer', cursive; }
+
+        .vignette {
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.85) 90%);
+        }
+        
+        .gothic-border {
+            border: 4px double #4a4a4a;
+            border-radius: 8px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.9);
+            background: rgba(15, 10, 15, 0.90);
+            backdrop-filter: blur(5px);
+        }
+
+        @keyframes drift {
+            0% { transform: translateX(0); opacity: 0.3; }
+            50% { opacity: 0.5; }
+            100% { transform: translateX(-50px); opacity: 0.3; }
+        }
+        
+        .fog-layer {
+            background: url('https://raw.githubusercontent.com/ijklim/codepen-assets/master/fog1.png') repeat-x;
+            background-size: contain;
+            animation: drift 60s linear infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b21a8; }
+    </style>
+</head>
+<body class="bg-black text-gray-100 font-sans overflow-hidden h-screen w-full relative selection:bg-purple-900 selection:text-white">
+
+    <div class="absolute inset-0 z-0 opacity-40">
+        <video id="bgVideo" class="w-full h-full object-cover" autoplay loop muted playsinline>
+            <source src="assets/background.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <div class="absolute inset-0 z-0 pointer-events-none fog-layer opacity-40 bottom-0 h-1/2"></div>
+    <div class="absolute inset-0 z-10 vignette pointer-events-none"></div>
+
+    <audio id="audioAmbience" loop>
+        <source src="assets/theme.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="sfxClick">
+        <source src="assets/click.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="sfxHint">
+        <source src="assets/hint.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="sfxAlarm">
+        <source src="assets/alarm.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="entranceScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95 transition-opacity duration-1000">
+        <div class="text-center p-8 border border-gray-800 rounded-lg max-w-md mx-4 relative overflow-hidden group">
+            <div class="absolute inset-0 bg-purple-900/10 group-hover:bg-purple-900/20 transition-colors"></div>
+            <h1 class="relative text-6xl font-creepster text-purple-600 mb-6 tracking-wider animate-pulse drop-shadow-[0_0_10px_rgba(147,51,234,0.5)]">The Mansion</h1>
+            <p class="relative text-gray-400 font-gothic text-xl mb-8">
+                Dare you enter the escape room? <br/> The clock is ticking...
+            </p>
+            <button 
+                onclick="enterMansion()"
+                class="relative px-10 py-4 bg-red-950 hover:bg-red-900 text-red-100 font-gothic text-2xl rounded border border-red-800 shadow-[0_0_20px_rgba(153,27,27,0.4)] transition-all transform hover:scale-105 active:scale-95"
+            >
+                ENTER IF YOU DARE
+            </button>
+        </div>
+    </div>
+
+    <div id="gameUI" class="relative z-20 flex flex-col items-center justify-center h-full opacity-0 pointer-events-none transition-opacity duration-1000">
+        
+        <div class="gothic-border p-6 md:p-12 w-11/12 max-w-4xl flex flex-col items-center gap-8 border-t-4 border-t-purple-900/50">
+            
+            <div class="w-full flex justify-between items-start border-b border-gray-700 pb-4">
+                <div class="text-left">
+                    <h2 class="text-3xl md:text-5xl font-creepster text-gray-200 tracking-widest drop-shadow-lg">
+                        THE ADDAMS MANSION
+                    </h2>
+                    <p class="text-purple-400 font-gothic text-sm tracking-[0.2em] mt-1 opacity-80 uppercase">
+                        Escape Event - Room 001
+                    </p>
+                </div>
+                <button id="btnMute" onclick="toggleMute()" class="text-gray-500 hover:text-white transition-colors p-2">
+                    <i data-lucide="volume-x" class="w-8 h-8"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col items-center w-full">
+                <div id="timerDisplay" class="text-7xl md:text-9xl font-nosifer tracking-wider drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-gray-200 transition-colors duration-500 tabular-nums">
+                    45:00
+                </div>
+                <div id="timeUpMessage" class="hidden text-5xl text-red-600 font-creepster mt-6 animate-bounce drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]">
+                    TIME IS UP!
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-6 mt-2 w-full">
+                <button 
+                    id="btnToggleTimer"
+                    onclick="toggleTimer()"
+                    class="flex items-center gap-3 px-8 py-3 rounded text-xl font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[180px] justify-center"
+                >
+                    <i data-lucide="play" class="w-6 h-6"></i> 
+                    <span>START</span>
+                </button>
+
+                <button 
+                    onclick="resetTimer()"
+                    class="flex items-center gap-3 px-8 py-3 bg-gray-800/40 border border-gray-600 text-gray-400 rounded text-xl font-gothic tracking-widest hover:bg-gray-700/60 hover:text-white transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                >
+                    <i data-lucide="rotate-ccw" class="w-6 h-6"></i> 
+                    <span>RESET</span>
+                </button>
+            </div>
+
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-purple-900/60 to-transparent my-2"></div>
+
+            <div class="w-full flex flex-col md:flex-row justify-between items-center gap-6 bg-black/40 p-6 rounded border border-gray-800">
+                
+                <div class="flex flex-col items-center md:items-start">
+                    <span class="text-gray-400 font-gothic mb-3 text-sm uppercase tracking-widest">Hints Available</span>
+                    <div id="skullContainer" class="flex gap-4">
+                        </div>
+                </div>
+
+                <button 
+                    id="btnTakeHint"
+                    onclick="takeHint()"
+                    class="group flex items-center gap-4 px-6 py-3 border rounded transition-all duration-300 border-red-900/50 bg-red-950/20 text-red-200 hover:bg-red-900/40 hover:shadow-[0_0_20px_rgba(153,27,27,0.15)] w-full md:w-auto justify-between md:justify-start"
+                >
+                    <div class="flex flex-col items-start">
+                        <span class="font-gothic text-lg font-bold flex items-center gap-2">
+                            <i data-lucide="skull" class="w-5 h-5 group-hover:animate-bounce"></i>
+                            TAKE A HINT
+                        </span>
+                        <span class="text-xs text-red-400/70 font-sans uppercase tracking-wider">
+                            Penalty: -3 Minutes
+                        </span>
+                    </div>
+                    <i data-lucide="minus" class="w-6 h-6 text-red-500/50 group-hover:text-red-500 transition-colors"></i>
+                </button>
+
+            </div>
+        </div>
+        
+        <div class="mt-8 opacity-30 animate-pulse">
+           <img src="https://img.icons8.com/ios-filled/100/aaaaaa/spider-web.png" alt="web" class="w-24 h-24 rotate-45" />
+        </div>
+
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const INITIAL_TIME = 45 * 60; // 45 minutes
+        const HINT_PENALTY = 3 * 60;  // 3 minutes
+        const MAX_HINTS = 3;
+
+        // --- State ---
+        let timeLeft = INITIAL_TIME;
+        let isActive = false;
+        let hintsUsed = 0;
+        let isMuted = true;
+        let timerInterval = null;
+
+        // --- DOM Elements ---
+        const elTimerDisplay = document.getElementById('timerDisplay');
+        const elTimeUpMessage = document.getElementById('timeUpMessage');
+        const elEntranceScreen = document.getElementById('entranceScreen');
+        const elGameUI = document.getElementById('gameUI');
+        const elBtnMute = document.getElementById('btnMute');
+        
+        const elBtnToggle = document.getElementById('btnToggleTimer');
+        
+        const elBtnHint = document.getElementById('btnTakeHint');
+        const elSkullContainer = document.getElementById('skullContainer');
+
+        // --- Audio Elements ---
+        const audioAmbience = document.getElementById('audioAmbience');
+        const sfxClick = document.getElementById('sfxClick');
+        const sfxHint = document.getElementById('sfxHint');
+        const sfxAlarm = document.getElementById('sfxAlarm');
+
+        // Set audio volume
+        audioAmbience.volume = 0.5; 
+        sfxClick.volume = 0.6;
+        sfxHint.volume = 0.6;
+        sfxAlarm.volume = 0.6;
+
+        // --- Logic ---
+
+        function enterMansion() {
+            // Unmute and start audio context on user gesture
+            isMuted = false;
+            
+            // Fade out entrance, fade in game
+            elEntranceScreen.style.opacity = '0';
+            setTimeout(() => {
+                elEntranceScreen.style.display = 'none';
+                elGameUI.classList.remove('opacity-0', 'pointer-events-none');
+                elGameUI.classList.add('opacity-100');
+            }, 1000);
+
+            // Play Sound
+            playClick();
+            updateMuteState();
+            
+            // Attempt to play ambience
+            const playPromise = audioAmbience.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.error("Audio playback failed (check file path or interaction):", error);
+                });
+            }
+        }
+
+        function toggleTimer() {
+            playClick();
+            isActive = !isActive;
+            
+            if (isActive) {
+                // Update UI to Pause
+                updatePlayPauseButton(true);
+                
+                if (!timerInterval) {
+                    timerInterval = setInterval(() => {
+                        if (timeLeft > 0) {
+                            timeLeft--;
+                            updateTimerDisplay();
+                        } else {
+                            endGame();
+                        }
+                    }, 1000);
+                }
+            } else {
+                // Update UI to Start
+                updatePlayPauseButton(false);
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isActive = false;
+            timeLeft = 0;
+            updateTimerDisplay();
+            updatePlayPauseButton(false);
+            playAlarm();
+            elTimeUpMessage.classList.remove('hidden');
+            disableHintButton();
+        }
+
+        function resetTimer() {
+            playClick();
+            // Stop timer
+            isActive = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            // Reset variables
+            timeLeft = INITIAL_TIME;
+            hintsUsed = 0;
+            
+            // Reset UI
+            updatePlayPauseButton(false);
+            updateTimerDisplay();
+            elTimeUpMessage.classList.add('hidden');
+            renderSkulls();
+            enableHintButton();
+            
+            // Stop Alarm if playing
+            sfxAlarm.pause();
+            sfxAlarm.currentTime = 0;
+        }
+
+        function takeHint() {
+            if (hintsUsed < MAX_HINTS && timeLeft > 0) {
+                playHintSound();
+                hintsUsed++;
+                
+                // Subtract time (don't go below zero)
+                timeLeft = Math.max(0, timeLeft - HINT_PENALTY);
+                
+                renderSkulls();
+                updateTimerDisplay();
+                
+                // Flash red effect on timer
+                elTimerDisplay.classList.add('text-red-500');
+                setTimeout(() => elTimerDisplay.classList.remove('text-red-500'), 300);
+
+                if (hintsUsed >= MAX_HINTS) {
+                    disableHintButton();
+                }
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            updateMuteState();
+        }
+
+        function updateMuteState() {
+            if (isMuted) {
+                audioAmbience.pause();
+                elBtnMute.innerHTML = '<i data-lucide="volume-x" class="w-8 h-8"></i>';
+            } else {
+                audioAmbience.play().catch(e => console.error("Could not play ambience:", e));
+                elBtnMute.innerHTML = '<i data-lucide="volume-2" class="w-8 h-8"></i>';
+            }
+            lucide.createIcons();
+        }
+
+        // --- Helper Functions ---
+
+        function playClick() {
+            if (!isMuted) {
+                sfxClick.currentTime = 0;
+                sfxClick.play().catch(e => console.error("SFX Click Error (check file path):", e));
+            }
+        }
+
+        function playHintSound() {
+            if (!isMuted) {
+                sfxHint.currentTime = 0;
+                sfxHint.play().catch(e => console.error("SFX Hint Error (check file path):", e));
+            }
+        }
+
+        function playAlarm() {
+            if (!isMuted) {
+                sfxAlarm.currentTime = 0;
+                sfxAlarm.play().catch(e => console.error("SFX Alarm Error (check file path):", e));
+            }
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            const timeString = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            elTimerDisplay.textContent = timeString;
+
+            // Visual effects for low time (< 5 mins)
+            if (timeLeft < 300 && timeLeft > 0) {
+                elTimerDisplay.classList.remove('text-gray-200');
+                elTimerDisplay.classList.add('text-red-600', 'animate-pulse');
+            } else {
+                elTimerDisplay.classList.remove('text-red-600', 'animate-pulse');
+                elTimerDisplay.classList.add('text-gray-200');
+            }
+        }
+
+        function updatePlayPauseButton(isPlaying) {
+            if (isPlaying) {
+                // Pause Style
+                elBtnToggle.className = "flex items-center gap-3 px-8 py-3 rounded text-xl font-gothic tracking-widest transition-all bg-yellow-900/30 border border-yellow-700 text-yellow-500 hover:bg-yellow-900/50 min-w-[180px] justify-center";
+                elBtnToggle.innerHTML = '<i data-lucide="pause" class="w-6 h-6"></i> <span>PAUSE</span>';
+            } else {
+                // Start Style
+                elBtnToggle.className = "flex items-center gap-3 px-8 py-3 rounded text-xl font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[180px] justify-center";
+                elBtnToggle.innerHTML = '<i data-lucide="play" class="w-6 h-6"></i> <span>START</span>';
+            }
+            lucide.createIcons();
+        }
+
+        function renderSkulls() {
+            elSkullContainer.innerHTML = ''; // Clear existing
+            for (let i = 0; i < MAX_HINTS; i++) {
+                const isAvailable = i < (MAX_HINTS - hintsUsed);
+                const skull = document.createElement('i');
+                skull.setAttribute('data-lucide', 'skull');
+                skull.className = "w-8 h-8 transition-all duration-500";
+                
+                if (isAvailable) {
+                    skull.classList.add('text-purple-500', 'drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]');
+                } else {
+                    skull.classList.add('text-gray-800', 'opacity-30');
+                }
+                elSkullContainer.appendChild(skull);
+            }
+            lucide.createIcons();
+        }
+
+        function disableHintButton() {
+            elBtnHint.disabled = true;
+            elBtnHint.className = "group flex items-center gap-4 px-6 py-3 border rounded transition-all duration-300 border-gray-800 text-gray-700 cursor-not-allowed bg-black/40 w-full md:w-auto justify-between md:justify-start";
+        }
+
+        function enableHintButton() {
+            elBtnHint.disabled = false;
+            elBtnHint.className = "group flex items-center gap-4 px-6 py-3 border rounded transition-all duration-300 border-red-900/50 bg-red-950/20 text-red-200 hover:bg-red-900/40 hover:shadow-[0_0_20px_rgba(153,27,27,0.15)] w-full md:w-auto justify-between md:justify-start";
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTimerDisplay();
+            renderSkulls();
+            lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>
