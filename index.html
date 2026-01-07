@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Creepster&family=Nosifer&display=swap" rel="stylesheet">
 
     <style>
-        .font-creepster { font-family: 'Creepster', cursive; }
+        .font-creepster { font-family: 'Cinzel Decorative', cursive; }
         .font-gothic { font-family: 'Cinzel Decorative', cursive; }
         .font-nosifer { font-family: 'Nosifer', cursive; }
 
@@ -26,7 +26,6 @@
             border: 4px double #4a4a4a;
             border-radius: 8px;
             box-shadow: 0 0 25px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.9);
-            /* UPDATED: Lower opacity (0.60) to see video better */
             background: rgba(10, 5, 10, 0.60); 
             backdrop-filter: blur(3px);
         }
@@ -50,7 +49,7 @@
         <video id="bgVideo" class="absolute inset-0 w-full h-full object-cover" autoplay loop muted playsinline>
             <source src="assets/background.mp4" type="video/mp4">
         </video>
-        </div>
+    </div>
 
     <div class="fixed inset-0 z-10 pointer-events-none fog-layer opacity-30 bottom-0 h-1/2"></div>
     <div class="fixed inset-0 z-10 vignette pointer-events-none"></div>
@@ -58,7 +57,10 @@
     <audio id="audioAmbience" loop><source src="assets/theme.mp3" type="audio/mpeg"></audio>
     <audio id="sfxClick"><source src="assets/click.mp3" type="audio/mpeg"></audio>
     <audio id="sfxHint"><source src="assets/hint.mp3" type="audio/mpeg"></audio>
-    <audio id="sfxAlarm"><source src="assets/alarm.mp3" type="audio/mpeg"></audio>
+    
+    <audio id="sfxVictory" loop><source src="assets/victory.mp3" type="audio/mpeg"></audio>
+    
+    <audio id="sfxJumpscare"><source src="assets/jumpscare.mp3" type="audio/mpeg"></audio>
 
     <div id="entranceScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95 transition-opacity duration-1000">
         <div class="text-center p-8 border border-gray-800 rounded-lg max-w-md mx-4 relative overflow-hidden group">
@@ -82,11 +84,11 @@
             
             <div class="w-full flex justify-between items-start border-b border-gray-700 pb-2">
                 <div class="text-left">
-                    <h2 class="text-3xl md:text-4xl font-creepster text-gray-200 tracking-widest drop-shadow-lg">
+                    <h2 class="text-2xl md:text-3xl font-creepster text-gray-200 tracking-widest drop-shadow-lg">
                         THE ADDAMS MANSION
                     </h2>
                     <p class="text-purple-400 font-gothic text-xs tracking-[0.2em] mt-1 opacity-80 uppercase">
-                        Escape Event - Room 001
+                        Escape Room Event - Room 100
                     </p>
                 </div>
                 <button id="btnMute" onclick="toggleMute()" class="text-gray-500 hover:text-white transition-colors p-1">
@@ -98,8 +100,13 @@
                 <div id="timerDisplay" class="text-6xl md:text-8xl font-nosifer tracking-wider drop-shadow-[0_5px_5px_rgba(0,0,0,1)] text-gray-200 transition-colors duration-500 tabular-nums">
                     45:00
                 </div>
+                
                 <div id="timeUpMessage" class="hidden text-4xl text-red-600 font-creepster mt-4 animate-bounce drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]">
                     TIME IS UP!
+                </div>
+                
+                <div id="victoryMessage" class="hidden text-4xl text-yellow-500 font-creepster mt-4 animate-pulse drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]">
+                    ESCAPED!
                 </div>
             </div>
 
@@ -107,10 +114,18 @@
                 <button 
                     id="btnToggleTimer"
                     onclick="toggleTimer()"
-                    class="flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[140px] justify-center"
+                    class="flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[130px] justify-center"
                 >
                     <i data-lucide="play" class="w-5 h-5"></i> 
                     <span>START</span>
+                </button>
+
+                <button 
+                    onclick="finishGame()"
+                    class="flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-cyan-950/40 border border-cyan-800 text-cyan-400 hover:bg-cyan-900/60 hover:shadow-[0_0_15px_rgba(34,211,238,0.2)] min-w-[130px] justify-center"
+                >
+                    <i data-lucide="door-open" class="w-5 h-5"></i> 
+                    <span>ESCAPED</span>
                 </button>
 
                 <button 
@@ -157,7 +172,7 @@
     </div>
 
     <script>
-        const INITIAL_TIME = 45 * 60; 
+        const INITIAL_TIME = 40 * 60; 
         const HINT_PENALTY = 3 * 60;  
         const MAX_HINTS = 3;
 
@@ -169,6 +184,7 @@
 
         const elTimerDisplay = document.getElementById('timerDisplay');
         const elTimeUpMessage = document.getElementById('timeUpMessage');
+        const elVictoryMessage = document.getElementById('victoryMessage');
         const elEntranceScreen = document.getElementById('entranceScreen');
         const elGameUI = document.getElementById('gameUI');
         const elBtnMute = document.getElementById('btnMute');
@@ -179,12 +195,15 @@
         const audioAmbience = document.getElementById('audioAmbience');
         const sfxClick = document.getElementById('sfxClick');
         const sfxHint = document.getElementById('sfxHint');
-        const sfxAlarm = document.getElementById('sfxAlarm');
+        const sfxVictory = document.getElementById('sfxVictory');
+        const sfxJumpscare = document.getElementById('sfxJumpscare');
 
+        // Volumes
         audioAmbience.volume = 0.5; 
         sfxClick.volume = 0.6;
         sfxHint.volume = 0.6;
-        sfxAlarm.volume = 0.6;
+        sfxVictory.volume = 0.8;
+        sfxJumpscare.volume = 1.0; 
 
         function enterMansion() {
             isMuted = false;
@@ -210,7 +229,7 @@
                             timeLeft--;
                             updateTimerDisplay();
                         } else {
-                            endGame();
+                            endGame(); // Time ran out
                         }
                     }, 1000);
                 }
@@ -230,8 +249,36 @@
             timeLeft = 0;
             updateTimerDisplay();
             updatePlayPauseButton(false);
-            playAlarm();
+            
+            // Jumpscare
+            audioAmbience.pause(); 
+            if (!isMuted) {
+                sfxJumpscare.currentTime = 0;
+                sfxJumpscare.play().catch(e => {});
+            }
+            
             elTimeUpMessage.classList.remove('hidden');
+            disableHintButton();
+        }
+
+        function finishGame() {
+            playClick();
+            isActive = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            updatePlayPauseButton(false);
+
+            // Victory Music (Loops)
+            audioAmbience.pause(); 
+            if (!isMuted) {
+                sfxVictory.currentTime = 0;
+                sfxVictory.play().catch(e => {});
+            }
+
+            elVictoryMessage.classList.remove('hidden');
+            elTimeUpMessage.classList.add('hidden');
             disableHintButton();
         }
 
@@ -246,11 +293,23 @@
             hintsUsed = 0;
             updatePlayPauseButton(false);
             updateTimerDisplay();
+            
             elTimeUpMessage.classList.add('hidden');
+            elVictoryMessage.classList.add('hidden');
+            
             renderSkulls();
             enableHintButton();
-            sfxAlarm.pause();
-            sfxAlarm.currentTime = 0;
+            
+            // Stop ALL special sounds
+            sfxJumpscare.pause();
+            sfxJumpscare.currentTime = 0;
+            sfxVictory.pause();
+            sfxVictory.currentTime = 0;
+            
+            // Resume Ambience
+            if (!isMuted) {
+                audioAmbience.play().catch(e => {});
+            }
         }
 
         function takeHint() {
@@ -274,9 +333,18 @@
         function updateMuteState() {
             if (isMuted) {
                 audioAmbience.pause();
+                sfxVictory.pause(); 
+                sfxJumpscare.pause();
                 elBtnMute.innerHTML = '<i data-lucide="volume-x" class="w-6 h-6"></i>';
             } else {
-                audioAmbience.play().catch(e => console.error(e));
+                // If game is active/idle, play ambience
+                if (elVictoryMessage.classList.contains('hidden') && elTimeUpMessage.classList.contains('hidden')) {
+                    audioAmbience.play().catch(e => console.error(e));
+                } 
+                // If Victory is showing, play victory music
+                else if (!elVictoryMessage.classList.contains('hidden')) {
+                    sfxVictory.play().catch(e => {});
+                }
                 elBtnMute.innerHTML = '<i data-lucide="volume-2" class="w-6 h-6"></i>';
             }
             lucide.createIcons();
@@ -284,7 +352,6 @@
 
         function playClick() { if (!isMuted) { sfxClick.currentTime = 0; sfxClick.play().catch(e => {}); } }
         function playHintSound() { if (!isMuted) { sfxHint.currentTime = 0; sfxHint.play().catch(e => {}); } }
-        function playAlarm() { if (!isMuted) { sfxAlarm.currentTime = 0; sfxAlarm.play().catch(e => {}); } }
 
         function updateTimerDisplay() {
             const mins = Math.floor(timeLeft / 60);
@@ -302,10 +369,10 @@
 
         function updatePlayPauseButton(isPlaying) {
             if (isPlaying) {
-                elBtnToggle.className = "flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-yellow-900/30 border border-yellow-700 text-yellow-500 hover:bg-yellow-900/50 min-w-[140px] justify-center";
+                elBtnToggle.className = "flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-yellow-900/30 border border-yellow-700 text-yellow-500 hover:bg-yellow-900/50 min-w-[130px] justify-center";
                 elBtnToggle.innerHTML = '<i data-lucide="pause" class="w-5 h-5"></i> <span>PAUSE</span>';
             } else {
-                elBtnToggle.className = "flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[140px] justify-center";
+                elBtnToggle.className = "flex items-center gap-3 px-6 py-2 rounded text-lg font-gothic tracking-widest transition-all bg-green-950/40 border border-green-800 text-green-400 hover:bg-green-900/60 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] min-w-[130px] justify-center";
                 elBtnToggle.innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> <span>START</span>';
             }
             lucide.createIcons();
