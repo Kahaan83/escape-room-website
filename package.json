@@ -1,0 +1,16 @@
+{
+  "name": "addams-mansion-escape",
+  "version": "1.0.0",
+  "description": "A point-and-click escape room set in the Addams family séance parlour.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "build": "node build.js",
+    "test": "node tests/playthrough.mjs && node tests/edges.mjs && node tests/dist-playthrough.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^24.0.0"
+  },
+  "license": "MIT"
+}
